@@ -234,17 +234,36 @@ def build_and_train():
             df[col] = pd.to_numeric(df[col], errors='coerce')
             df[col] = df[col].fillna(df[col].median())
 
+   # Normalize column names (strip spaces, unify separators)
+df.columns = df.columns.str.strip().str.replace('-', '_').str.replace(' ', '_')
+
+# Now re-check sex encoding after rename
+if 'sex' in df.columns:
+    if df['sex'].dtype == object:
+        df['sex'] = LabelEncoder().fit_transform(df['sex'].astype(str))
+    df['sex'] = pd.to_numeric(df['sex'], errors='coerce')
+
+for col in ['plasma_CA19_9', 'creatinine', 'LYVE1', 'REG1B', 'TFF1']:
+    if col in df.columns:
+        df[col] = pd.to_numeric(df[col], errors='coerce')
+        df[col] = df[col].fillna(df[col].median())
+
     available = [f for f in FEATURE_NAMES if f in df.columns]
-    df = df.dropna(subset=available)
-
+    st.write("Available features:", available)   # keep until confirmed working
+    st.write("df shape before dropna:", df.shape)
+    
+    # Only drop rows where ALL available columns are NaN (not any NaN)
+    df = df.dropna(subset=available, how='all')
+    df[available] = df[available].fillna(df[available].median())
+    
+    st.write("df shape after dropna:", df.shape)
+    
     X = df[available].copy()
-
-    # ── CRITICAL: force all columns to float64 before scaling ──
     X = X.apply(pd.to_numeric, errors='coerce').astype(float)
-    X = X.fillna(X.median())  # safety net for any remaining NaNs
-
+    X = X.replace([np.inf, -np.inf], np.nan)
+    X = X.fillna(X.median().fillna(0))
+    
     y = df['diagnosis'].astype(int)
-
     
         # ── DEBUG: paste this temporarily, then remove after fixing ──
     st.write("X shape:", X.shape)
