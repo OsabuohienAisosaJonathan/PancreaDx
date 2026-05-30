@@ -222,17 +222,27 @@ def build_and_train():
     df['diagnosis'] = df['diagnosis'].map({1: 0, 2: 1, 3: 2})
     df = df.dropna(subset=['diagnosis'])
 
-    if df['sex'].dtype == object:
-        df['sex'] = LabelEncoder().fit_transform(df['sex'].astype(str))
+    # ── Encode sex robustly ──
+    if 'sex' in df.columns:
+        if df['sex'].dtype == object:
+            df['sex'] = LabelEncoder().fit_transform(df['sex'].astype(str))
+        df['sex'] = pd.to_numeric(df['sex'], errors='coerce')
 
+    # ── Fill NaNs in biomarker columns ──
     for col in ['plasma_CA19_9', 'creatinine', 'LYVE1', 'REG1B', 'TFF1']:
         if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors='coerce')
             df[col] = df[col].fillna(df[col].median())
 
     available = [f for f in FEATURE_NAMES if f in df.columns]
     df = df.dropna(subset=available)
 
     X = df[available].copy()
+
+    # ── CRITICAL: force all columns to float64 before scaling ──
+    X = X.apply(pd.to_numeric, errors='coerce').astype(float)
+    X = X.fillna(X.median())  # safety net for any remaining NaNs
+
     y = df['diagnosis'].astype(int)
 
     scaler  = StandardScaler()
