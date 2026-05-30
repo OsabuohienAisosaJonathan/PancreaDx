@@ -245,6 +245,14 @@ def build_and_train():
 
     y = df['diagnosis'].astype(int)
 
+    
+        # ── DEBUG: paste this temporarily, then remove after fixing ──
+    st.write("X shape:", X.shape)
+    st.write("Dtypes:", X.dtypes.to_dict())
+    st.write("NaN counts:", X.isnull().sum().to_dict())
+    st.write("Inf counts:", np.isinf(X).sum().to_dict())
+    st.write("X head:", X.head())
+    
     scaler  = StandardScaler()
     X_sc    = pd.DataFrame(scaler.fit_transform(X), columns=available)
     X_train, X_test, y_train, y_test = train_test_split(
